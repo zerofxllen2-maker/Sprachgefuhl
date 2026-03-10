@@ -3,32 +3,238 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Word Search Application</title>
+    <title>Word Dictionary Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .search-wrapper {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #searchInput {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+
+        #searchInput:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .mode-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        #modeToggle {
+            padding: 10px 15px;
+            font-size: 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 120px;
+        }
+
+        #modeToggle:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        #modeToggle:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .results-container {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+        }
+
+        .results-container:empty::before {
+            content: "Start typing to search...";
+            display: block;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+        }
+
+        .result-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 15px;
+        }
+
+        .result-item:hover {
+            background-color: #e8ebf7;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-count {
+            text-align: center;
+            color: #666;
+            font-size: 13px;
+            margin-top: 10px;
+            padding: 10px;
+        }
+
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-weight: 500;
+        }
+    </style>
 </head>
 <body>
-    <h1>Word Search Application</h1>
-    <select id="searchType">
-        <option value="prefix">Prefix</option>
-        <option value="suffix">Suffix</option>
-    </select>
-    <input type="text" id="searchInput" placeholder="Enter word...">
-    <button id="searchButton">Search</button>
-    <ul id="results"></ul>
+    <div class="container">
+        <h1>📚 Word Dictionary Search</h1>
+        
+        <div class="search-wrapper">
+            <div class="search-input-wrapper">
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    placeholder="Enter a word or pattern..."
+                    autocomplete="off"
+                >
+            </div>
+            <div class="mode-selector">
+                <select id="modeToggle">
+                    <option value="prefix">Prefix</option>
+                    <option value="suffix">Suffix</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="results-container" id="resultsContainer"></div>
+        <div class="result-count" id="resultCount"></div>
+    </div>
 
     <script>
-        const everyWordURL = 'path/to/every-word.json'; // Update this path to the actual file URL
-        
-        document.getElementById('searchButton').addEventListener('click', () => {
-            const searchType = document.getElementById('searchType').value;
-            const searchTerm = document.getElementById('searchInput').value;
-            fetch(everyWordURL)
-                .then(response => response.json())
-                .then(data => {
-                    const results = data.filter(word => {
-                        return searchType === 'prefix' ? word.startsWith(searchTerm) : word.endsWith(searchTerm);
-                    });
-                    document.getElementById('results').innerHTML = results.map(word => `<li>${word}</li>`).join('');
+        // Your word dictionary from the file
+        const wordDictionary = {
+            "a": 1, "aa": 1, "aaa": 1, "aah": 1, "aahed": 1, "aahing": 1,
+            "aahs": 1, "aal": 1, "aalii": 1, "aaliis": 1, "aals": 1, "aam": 1,
+            "aani": 1, "aardvark": 1, "aardvarks": 1, "aardwolf": 1, "aardwolves": 1,
+            "aargh": 1, "aaron": 1, "aaronic": 1, "aaronical": 1, "aaronite": 1,
+            // ... add all words from your dictionary
+        };
+
+        const searchInput = document.getElementById('searchInput');
+        const modeToggle = document.getElementById('modeToggle');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultCount = document.getElementById('resultCount');
+
+        function performSearch() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const mode = modeToggle.value;
+
+            if (searchTerm.length === 0) {
+                resultsContainer.innerHTML = '';
+                resultCount.textContent = '';
+                return;
+            }
+
+            // Filter words based on mode
+            const results = Object.keys(wordDictionary).filter(word => {
+                if (mode === 'prefix') {
+                    return word.startsWith(searchTerm);
+                } else if (mode === 'suffix') {
+                    return word.endsWith(searchTerm);
+                }
+                return false;
+            }).slice(0, 100); // Limit to 100 results for performance
+
+            // Display results
+            resultsContainer.innerHTML = results
+                .map(word => {
+                    let highlightedWord = word;
+                    if (mode === 'prefix') {
+                        highlightedWord = `<span class="highlight">${searchTerm}</span>${word.slice(searchTerm.length)}`;
+                    } else if (mode === 'suffix') {
+                        const suffixStart = word.length - searchTerm.length;
+                        highlightedWord = `${word.slice(0, suffixStart)}<span class="highlight">${searchTerm}</span>`;
+                    }
+                    return `<div class="result-item">${highlightedWord}</div>`;
+                })
+                .join('');
+
+            resultCount.textContent = results.length > 0 
+                ? `${results.length} result${results.length !== 1 ? 's' : ''} found`
+                : 'No results found';
+        }
+
+        // Event listeners
+        searchInput.addEventListener('input', performSearch);
+        modeToggle.addEventListener('change', performSearch);
+
+        // Optional: Copy to clipboard on click
+        resultsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('result-item')) {
+                const word = e.target.textContent.replace(/\s+/g, '');
+                navigator.clipboard.writeText(word).then(() => {
+                    // Visual feedback
+                    const original = e.target.textContent;
+                    e.target.textContent = '✓ Copied!';
+                    setTimeout(() => {
+                        e.target.textContent = original;
+                    }, 1500);
                 });
+            }
         });
     </script>
 </body>
