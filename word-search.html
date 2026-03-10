@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Word Search Application</title>
+</head>
+<body>
+    <h1>Word Search Application</h1>
+    <select id="searchType">
+        <option value="prefix">Prefix</option>
+        <option value="suffix">Suffix</option>
+    </select>
+    <input type="text" id="searchInput" placeholder="Enter word...">
+    <button id="searchButton">Search</button>
+    <ul id="results"></ul>
+
+    <script>
+        const everyWordURL = 'path/to/every-word.json'; // Update this path to the actual file URL
+        
+        document.getElementById('searchButton').addEventListener('click', () => {
+            const searchType = document.getElementById('searchType').value;
+            const searchTerm = document.getElementById('searchInput').value;
+            fetch(everyWordURL)
+                .then(response => response.json())
+                .then(data => {
+                    const results = data.filter(word => {
+                        return searchType === 'prefix' ? word.startsWith(searchTerm) : word.endsWith(searchTerm);
+                    });
+                    document.getElementById('results').innerHTML = results.map(word => `<li>${word}</li>`).join('');
+                });
+        });
+    </script>
+</body>
+</html>
