@@ -1,9 +1,31 @@
-
 const fs = require('fs');
 const path = require('path');
 
-// Load word data
-const wordData = JSON.parse(fs.readFileSync(path.join(__dirname, 'every word'), 'utf8'));
+// Load word data - handle both JSON and plain text formats
+function loadWordData() {
+  try {
+    const filePath = path.join(__dirname, 'every word');
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    
+    // Try parsing as JSON first
+    try {
+      return JSON.parse(fileContent);
+    } catch (jsonError) {
+      // If JSON parsing fails, treat as newline-delimited words
+      const words = fileContent.split('\n').filter(word => word.trim());
+      const wordData = {};
+      words.forEach(word => {
+        wordData[word.trim()] = { word: word.trim() };
+      });
+      return wordData;
+    }
+  } catch (error) {
+    console.error('Error loading word data:', error);
+    return {};
+  }
+}
+
+const wordData = loadWordData();
 
 /**
  * Search words by prefix
@@ -13,7 +35,7 @@ const wordData = JSON.parse(fs.readFileSync(path.join(__dirname, 'every word'), 
 function searchByPrefix(prefix) {
   const results = {};
   for (const [word, data] of Object.entries(wordData)) {
-    if (word.startsWith(prefix)) {
+    if (word.toLowerCase().startsWith(prefix.toLowerCase())) {
       results[word] = data;
     }
   }
@@ -28,7 +50,7 @@ function searchByPrefix(prefix) {
 function searchBySuffix(suffix) {
   const results = {};
   for (const [word, data] of Object.entries(wordData)) {
-    if (word.endsWith(suffix)) {
+    if (word.toLowerCase().endsWith(suffix.toLowerCase())) {
       results[word] = data;
     }
   }
@@ -44,7 +66,7 @@ function searchBySuffix(suffix) {
 function searchByPrefixAndSuffix(prefix, suffix) {
   const results = {};
   for (const [word, data] of Object.entries(wordData)) {
-    if (word.startsWith(prefix) && word.endsWith(suffix)) {
+    if (word.toLowerCase().startsWith(prefix.toLowerCase()) && word.toLowerCase().endsWith(suffix.toLowerCase())) {
       results[word] = data;
     }
   }
@@ -59,11 +81,27 @@ function getAllWords() {
   return wordData;
 }
 
+/**
+ * Search words containing a specific substring
+ * @param {string} substring - The substring to search for
+ * @returns {Object} Matching words with their data
+ */
+function searchByContains(substring) {
+  const results = {};
+  for (const [word, data] of Object.entries(wordData)) {
+    if (word.toLowerCase().includes(substring.toLowerCase())) {
+      results[word] = data;
+    }
+  }
+  return results;
+}
+
 // Export functions
 module.exports = {
   searchByPrefix,
   searchBySuffix,
   searchByPrefixAndSuffix,
+  searchByContains,
   getAllWords
 };
 
@@ -82,6 +120,9 @@ if (require.main === module) {
     case 'both':
       console.log(searchByPrefixAndSuffix(args[1], args[2]));
       break;
+    case 'contains':
+      console.log(searchByContains(args[1]));
+      break;
     case 'all':
       console.log(getAllWords());
       break;
@@ -90,6 +131,7 @@ if (require.main === module) {
       console.log('  node search-words.js prefix <prefix>');
       console.log('  node search-words.js suffix <suffix>');
       console.log('  node search-words.js both <prefix> <suffix>');
+      console.log('  node search-words.js contains <substring>');
       console.log('  node search-words.js all');
   }
 }
